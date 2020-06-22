@@ -1,12 +1,13 @@
 # 导入聚宽函数库
 import jqdata
 # 导入 Alpha_191 因子库
-from jqlib.alpha191 import *
+from jqlib.alpha191 import * 
+
 
 # 初始化函数，设定基准等等
 def initialize(context):
     #设置回测分组
-    quantile = 2
+   
     # 设定中证800作为基准
     set_benchmark('000906.XSHG')
     # 开启动态复权模式(真实价格)
@@ -18,12 +19,13 @@ def initialize(context):
     
     ## 运行函数（reference_security为运行时间的参考标的；传入的标的只做种类区分，因此传入'000300.XSHG'或'510300.XSHG'是一样的）
       # 每月第一个交易日，开盘前运行
-    #run_daily(before_market_open, time='9:30')
-    run_monthly(before_market_open,monthday=1, time='9:30')
+    run_daily(before_market_open, time='9:30')
+    #run_monthly(before_market_open,monthday=1, time='9:30')
     #run_monthly(, monthday=1, time='before_open')
      # 每月第一个交易日，开盘时运行
-    #run_daily(market_open, time='every_bar')
-    run_monthly(market_open,monthday=1, time='9:30')
+    run_daily(market_open, time='every_bar')
+    #run_monthly(market_open,monthday=1, time='9:30')
+    
 def mad(factor):
     # 3倍中位数去极值
     # 确定输入变量
@@ -47,7 +49,6 @@ def mad(factor):
     ret = factor
     return ret
 
-
 def stand(factor):
     #factor = np.array(factor)
     mean = factor.mean()
@@ -56,18 +57,20 @@ def stand(factor):
     
 ## 开盘前运行函数     
 def before_market_open(context):
-    quantile = 4
+    quantile = 10
     # 输出运行时间
     log.info('函数运行时间(before_market_open)：'+str(context.current_dt.time()))
     current_security = context.portfolio.positions.keys()
     # 获取前一个交易日的日期
     current_date =  context.previous_date
     # 获取中证800股票成分股的alpha因子值，剔除NaN值后按照因子值做降序排列
-    alpha_stocks = alpha_002('000906.XSHG',current_date).dropna().sort_values(ascending=False)
+    alpha_stocks = alpha_052('000906.XSHG',current_date)
     # 输出因子值最高的前5只股票代码及其因子值
-    #log.info('\n',alpha_stocks.head(5))
-    
+    #log.info('\n',alpha_stocks.head(5))000001.XSHE
+    #log.info('000001.XSHE: ' + str(alpha_008('000906.XSHG','2019-06-17')['000001.XSHE']))
+    #log.info('验证值: ' + str(alpha191_version()))
     alpha_stocks = pd.DataFrame(alpha_stocks)
+    alpha_stocks.index.name = 'code'
     alpha_stocks.reset_index(level=['code'], inplace=True)
     alpha_stocks.columns = ['Stock','Factor']
     alpha_stocks['Factor'] = mad(alpha_stocks['Factor'])
@@ -76,16 +79,26 @@ def before_market_open(context):
     alpha_stocks = alpha_stocks.iloc[:,0]
     
     if quantile == 1:
-        alpha_select = alpha_stocks[(alpha_stocks <= alpha_stocks.quantile(0.2))]
+        alpha_select = alpha_stocks[(alpha_stocks <= alpha_stocks.quantile(0.1))]
     elif quantile == 2:
-        alpha_select = alpha_stocks[(alpha_stocks > alpha_stocks.quantile(0.2)) & (alpha_stocks <= alpha_stocks.quantile(0.4))]
+        alpha_select = alpha_stocks[(alpha_stocks > alpha_stocks.quantile(0.1)) & (alpha_stocks <= alpha_stocks.quantile(0.2))]
     elif quantile == 3:
-        alpha_select = alpha_stocks[(alpha_stocks > alpha_stocks.quantile(0.4)) & (alpha_stocks <= alpha_stocks.quantile(0.6))]
+        alpha_select = alpha_stocks[(alpha_stocks > alpha_stocks.quantile(0.2)) & (alpha_stocks <= alpha_stocks.quantile(0.3))]
     elif quantile == 4:
-        alpha_select = alpha_stocks[(alpha_stocks > alpha_stocks.quantile(0.6)) & (alpha_stocks <= alpha_stocks.quantile(0.8))]
+        alpha_select = alpha_stocks[(alpha_stocks > alpha_stocks.quantile(0.3)) & (alpha_stocks <= alpha_stocks.quantile(0.4))]
+    elif quantile == 5:
+        alpha_select = alpha_stocks[(alpha_stocks > alpha_stocks.quantile(0.4)) & (alpha_stocks <= alpha_stocks.quantile(0.5))]
+    elif quantile == 6:
+        alpha_select = alpha_stocks[(alpha_stocks > alpha_stocks.quantile(0.5)) & (alpha_stocks <= alpha_stocks.quantile(0.6))]
+    elif quantile == 7:
+        alpha_select = alpha_stocks[(alpha_stocks > alpha_stocks.quantile(0.6)) & (alpha_stocks <= alpha_stocks.quantile(0.7))]
+    elif quantile == 8:
+        alpha_select = alpha_stocks[(alpha_stocks > alpha_stocks.quantile(0.7)) & (alpha_stocks <= alpha_stocks.quantile(0.8))]
+    elif quantile == 9:
+        alpha_select = alpha_stocks[(alpha_stocks > alpha_stocks.quantile(0.8)) & (alpha_stocks <= alpha_stocks.quantile(0.9))]
     else:
-        alpha_select = alpha_stocks[(alpha_stocks > alpha_stocks.quantile(0.8))]
-
+        alpha_select = alpha_stocks[(alpha_stocks > alpha_stocks.quantile(0.9))]
+        
 
     log.info('\n',alpha_select)
     # 获取降序排序后的股票列表 
